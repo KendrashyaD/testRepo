@@ -1,0 +1,28 @@
+# Web / API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.4
+
+# Agent (LangChain v1 create_agent + LangGraph runtime)
+langchain>=1.0,<2
+langchain-core>=1.0,<2
+langgraph>=1.0,<2
+
+# MCP
+langchain-mcp-adapters>=0.1.11
+mcp>=1.9
+
+# SAP AI Core - SAP Cloud SDK for AI (formerly generative-ai-hub-sdk); import path is still gen_ai_hub
+sap-ai-sdk-gen[all]>=6.0
+
+# Document generation tools
+python-docx>=1.1
+python-pptx>=1.0
+openpyxl>=3.1
+reportlab>=4.2
+matplotlib>=3.8
+pillow>=10.0
+
+# Tests (optional)
+pypdf>=4.0

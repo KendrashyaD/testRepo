@@ -1,0 +1,63 @@
+# SAP BTP Kyma runtime
+#   kubectl create secret generic web-agent-aicore -n <ns> \
+#     --from-literal=AICORE_AUTH_URL=... --from-literal=AICORE_CLIENT_ID=... \
+#     --from-literal=AICORE_CLIENT_SECRET=... --from-literal=AICORE_BASE_URL=... \
+#     --from-literal=AICORE_RESOURCE_GROUP=default
+#   kubectl apply -n <ns> -f deploy/kyma/web-agent.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-agent
+  labels: { app: web-agent }
+spec:
+  replicas: 1                     # in-memory state => single replica until Redis is introduced
+  selector:
+    matchLabels: { app: web-agent }
+  template:
+    metadata:
+      labels: { app: web-agent }
+    spec:
+      containers:
+        - name: web-agent
+          image: <registry>/web-agent:0.2.0
+          ports: [{ containerPort: 8000 }]
+          envFrom:
+            - secretRef: { name: web-agent-aicore }
+          env:
+            - { name: LLM_MODEL, value: gpt-4.1 }
+            - { name: BROWSER_ISOLATION, value: shared }
+          resources:
+            requests: { cpu: 500m, memory: 1Gi }
+            limits: { cpu: "2", memory: 3Gi }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 8000 }
+            initialDelaySeconds: 10
+          volumeMounts:
+            - { name: dshm, mountPath: /dev/shm }
+            - { name: artifacts, mountPath: /app/backend/artifacts }
+      volumes:
+        - name: dshm
+          emptyDir: { medium: Memory, sizeLimit: 1Gi }
+        - name: artifacts
+          emptyDir: {}            # replace with a PVC to keep screenshots and generated files
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-agent
+spec:
+  selector: { app: web-agent }
+  ports: [{ port: 8000, targetPort: 8000 }]
+---
+apiVersion: gateway.kyma-project.io/v2
+kind: APIRule
+metadata:
+  name: web-agent
+spec:
+  hosts: [web-agent]
+  service: { name: web-agent, port: 8000 }
+  gateway: kyma-system/kyma-gateway
+  rules:
+    - path: /*
+      methods: [GET, POST, DELETE]
+      noAuth: true                # TODO: switch to jwt when multi-user/XSUAA is added

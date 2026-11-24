@@ -1,0 +1,23 @@
+# SAP BTP Cloud Foundry - Docker image deployment
+#   docker build -t <registry>/web-agent:0.2.0 . && docker push <registry>/web-agent:0.2.0
+#   CF_DOCKER_PASSWORD=<registry-token> cf push -f deploy/btp/manifest.yml
+applications:
+  - name: web-agent
+    docker:
+      image: <registry>/web-agent:0.2.0
+      username: <registry-user>
+    instances: 1                 # in-memory state + shared browser => keep a single instance
+    memory: 3G                   # browser + document generation (matplotlib)
+    disk_quota: 4G
+    timeout: 180
+    health-check-type: http
+    health-check-http-endpoint: /api/health
+    services:
+      - aicore                   # AI Core service instance; SDK reads VCAP_SERVICES
+    env:
+      AICORE_RESOURCE_GROUP: default
+      LLM_MODEL: gpt-4.1
+      BROWSER_ISOLATION: shared
+      PW_HEADLESS: "true"
+      ALLOWED_ORIGINS: ""
+      DISABLE_SSL_VERIFY: "true"
